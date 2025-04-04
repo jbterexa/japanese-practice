@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Pronunciation Practice</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #333;
+        }
+        #container {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px; /* Cố định chiều rộng */
+            min-height: 300px; /* Cố định chiều cao tối thiểu */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        #display {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 0;
+            color: #2c3e50;
+            height: 60px; /* Cố định chiều cao để tránh nhảy */
+            line-height: 60px;
+            overflow: hidden;
+        }
+        #kana {
+            font-size: 28px;
+            color: #7f8c8d;
+            margin: 0;
+            height: 40px; /* Cố định chiều cao */
+            line-height: 40px;
+            overflow: hidden;
+        }
+        #analysis {
+            font-size: 16px;
+            color: #e74c3c;
+            margin: 10px 0;
+            height: 60px; /* Cố định chiều cao cho phân tích */
+            line-height: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: none;
+            border-radius: 25px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #inputWord {
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            width: 120px;
+            outline: none;
+            text-align: center;
+        }
+        #timeSettings {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        #timeSettings input {
+            width: 40px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div>
+            <div id="display">Start</div>
+            <div id="kana"></div>
+            <div id="analysis"></div>
+        </div>
+        <div>
+            <div id="controls">
+                <button id="startBtn">Start</button>
+                <button id="pauseBtn">Pause</button>
+                <input type="text" id="inputWord" placeholder="e.g., ka">
+                <button id="playBtn">Play</button>
+                <button id="recordBtn">Record</button>
+                <button id="stopRecordBtn" disabled>Stop</button>
+                <button id="compareBtn" disabled>Compare</button>
+            </div>
+            <div id="timeSettings">
+                <label>Show: <input type="number" id="showTime" value="4" min="1" max="10">s</label>
+                <label>Clear: <input type="number" id="clearTime" value="6" min="2" max="15">s</label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const syllables = {
+            "a": ["あ", "ア"], "i": ["い", "イ"], "u": ["う", "ウ"], "e": ["え", "エ"], "o": ["お", "オ"],
+            "ka": ["か", "カ"], "ki": ["き", "キ"], "ku": ["く", "ク"], "ke": ["け", "ケ"], "ko": ["こ", "コ"],
+            "sa": ["さ", "サ"], "shi": ["し", "シ"], "su": ["す", "ス"], "se": ["せ", "セ"], "so": ["そ", "ソ"],
+            "ta": ["た", "タ"], "chi": ["ち", "チ"], "tsu": ["つ", "ツ"], "te": ["て", "テ"], "to": ["と", "ト"],
+            "na": ["な", "ナ"], "ni": ["に", "ニ"], "nu": ["ぬ", "ヌ"], "ne": ["ね", "ネ"], "no": ["の", "ノ"],
+            "ha": ["は", "ハ"], "hi": ["ひ", "ヒ"], "fu": ["ふ", "フ"], "he": ["へ", "ヘ"], "ho": ["ほ", "ホ"],
+            "ma": ["ま", "マ"], "mi": ["み", "ミ"], "mu": ["む", "ム"], "me": ["め", "メ"], "mo": ["も", "モ"],
+            "ya": ["や", "ヤ"], "yu": ["ゆ", "ユ"], "yo": ["よ", "ヨ"],
+            "ra": ["ら", "ラ"], "ri": ["り", "リ"], "ru": ["る", "ル"], "re": ["れ", "レ"], "ro": ["ろ", "ロ"],
+            "wa": ["わ", "ワ"], "wo": ["を", "ヲ"], "n": ["ん", "ン"],
+            "ga": ["が", "ガ"], "gi": ["ぎ", "ギ"], "gu": ["ぐ", "グ"], "ge": ["げ", "ゲ"], "go": ["ご", "ゴ"],
+            "za": ["ざ", "ザ"], "ji": ["じ", "ジ"], "zu": ["ず", "ズ"], "ze": ["ぜ", "ゼ"], "zo": ["ぞ", "ゾ"],
+            "da": ["だ", "ダ"], "de": ["で", "デ"], "do": ["ど", "ド"],
+            "ba": ["ば", "バ"], "bi": ["び", "ビ"], "bu": ["ぶ", "ブ"], "be": ["べ", "ベ"], "bo": ["ぼ", "ボ"],
+            "pa": ["ぱ", "パ"], "pi": ["ぴ", "ピ"], "pu": ["ぷ", "プ"], "pe": ["ぺ", "ペ"], "po": ["ぽ", "ポ"],
+            "kya": ["きゃ", "キャ"], "kyu": ["きゅ", "キュ"], "kyo": ["きょ", "キョ"],
+            "sha": ["しゃ", "シャ"], "shu": ["しゅ", "シュ"], "sho": ["しょ", "ショ"],
+            "cha": ["ちゃ", "チャ"], "chu": ["ちゅ", "チュ"], "cho": ["ちょ", "チョ"],
+            "nya": ["にゃ", "ニャ"], "nyu": ["にゅ", "ニュ"], "nyo": ["にょ", "ニョ"],
+            "hya": ["ひゃ", "ヒャ"], "hyu": ["ひゅ", "ヒュ"], "hyo": ["ひょ", "ヒョ"],
+            "mya": ["みゃ", "ミャ"], "myu": ["みゅ", "ミュ"], "myo": ["みょ", "ミョ"],
+            "rya": ["りゃ", "リャ"], "ryu": ["りゅ", "リュ"], "ryo": ["りょ", "リョ"],
+            "gya": ["ぎゃ", "ギャ"], "gyu": ["ぎゅ", "ギュ"], "gyo": ["ぎょ", "ギョ"],
+            "ja": ["じゃ", "ジャ"], "ju": ["じゅ", "ジュ"], "jo": ["じょ", "ジョ"],
+            "bya": ["びゃ", "ビャ"], "byu": ["びゅ", "ビュ"], "byo": ["びょ", "ビョ"],
+            "pya": ["ぴゃ", "ピャ"], "pyu": ["ぴゅ", "ピュ"], "pyo": ["ぴょ", "ピョ"]
+        };
+
+        const romanjiList = Object.keys(syllables);
+        const displayElement = document.getElementById("display");
+        const kanaElement = document.getElementById("kana");
+        const analysisElement = document.getElementById("analysis");
+        const startBtn = document.getElementById("startBtn");
+        const pauseBtn = document.getElementById("pauseBtn");
+        const inputWord = document.getElementById("inputWord");
+        const playBtn = document.getElementById("playBtn");
+        const recordBtn = document.getElementById("recordBtn");
+        const stopRecordBtn = document.getElementById("stopRecordBtn");
+        const compareBtn = document.getElementById("compareBtn");
+        const showTimeInput = document.getElementById("showTime");
+        const clearTimeInput = document.getElementById("clearTime");
+
+        let intervalId = null;
+        let timeoutId1 = null;
+        let timeoutId2 = null;
+        let isPaused = false;
+        let currentWord = "";
+        let shuffledList = [...romanjiList];
+        let currentIndex = 0;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordedAudioUrl = null;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function playSound(word) {
+            const audio = new Audio(`sounds/${word}.mp3`);
+            audio.play().catch(error => console.log(`No sound file for "${word}": ${error}`));
+        }
+
+        function getShowTime() {
+            return parseInt(showTimeInput.value) * 1000;
+        }
+
+        function getClearTime() {
+            return parseInt(clearTimeInput.value) * 1000;
+        }
+
+        function updateWord() {
+            if (isPaused) return;
+
+            if (currentIndex >= shuffledList.length) {
+                clearInterval(intervalId);
+                clearTimeout(timeoutId1);
+                clearTimeout(timeoutId2);
+                intervalId = null;
+                displayElement.textContent = "Done!";
+                kanaElement.textContent = "";
+                analysisElement.textContent = "";
+                return;
+            }
+
+            currentWord = shuffledList[currentIndex];
+            displayElement.textContent = currentWord;
+            kanaElement.textContent = "";
+            analysisElement.textContent = "";
+            playSound(currentWord);
+            currentIndex++;
+
+            timeoutId1 = setTimeout(() => {
+                if (!isPaused) {
+                    const [hiragana, katakana] = syllables[currentWord];
+                    kanaElement.textContent = `${hiragana} / ${katakana}`;
+                }
+            }, getShowTime());
+
+            timeoutId2 = setTimeout(() => {
+                if (!isPaused) kanaElement.textContent = "";
+            }, getClearTime());
+        }
+
+        function playSpecificWord() {
+            const word = inputWord.value.trim().toLowerCase();
+            if (syllables[word]) {
+                currentWord = word;
+                displayElement.textContent = word;
+                kanaElement.textContent = "";
+                analysisElement.textContent = "";
+                playSound(word);
+
+                setTimeout(() => {
+                    const [hiragana, katakana] = syllables[word];
+                    kanaElement.textContent = `${hiragana} / ${katakana}`;
+                }, getShowTime());
+
+                setTimeout(() => {
+                    kanaElement.textContent = "";
+                }, getClearTime());
+            } else {
+                displayElement.textContent = "Invalid!";
+                kanaElement.textContent = "";
+                analysisElement.textContent = "";
+            }
+        }
+
+        function compareSounds() {
+            if (!currentWord || !recordedAudioUrl) {
+                alert("Please select a word and record first!");
+                return;
+            }
+
+            const standardAudio = new Audio(`sounds/${currentWord}.mp3`);
+            const recordedAudio = new Audio(recordedAudioUrl);
+
+            displayElement.textContent = `${currentWord} (Standard)`;
+            standardAudio.play();
+
+            standardAudio.onended = () => {
+                displayElement.textContent = `${currentWord} (You)`;
+                recordedAudio.play();
+
+                recordedAudio.onended = () => {
+                    displayElement.textContent = currentWord;
+                };
+            };
+        }
+
+        function analyzeRecording() {
+            if (!currentWord || !recordedAudioUrl) {
+                analysisElement.textContent = "Please select a word and record first!";
+                return;
+            }
+
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "ja-JP";
+            recognition.maxAlternatives = 1;
+
+            const recordedAudio = new Audio(recordedAudioUrl);
+            recordedAudio.play();
+
+            recognition.onresult = (event) => {
+                const recognizedText = event.results[0][0].transcript.toLowerCase();
+                let analysisText = "";
+
+                if (recognizedText === currentWord) {
+                    analysisText = "Great job! Your pronunciation matches the standard.";
+                } else if (recognizedText.includes(currentWord)) {
+                    analysisText = `Close! You said "${recognizedText}". Try making it shorter or clearer.`;
+                } else {
+                    analysisText = `Not quite. You said "${recognizedText}", standard is "${currentWord}". Listen and try again.`;
+                }
+
+                analysisElement.textContent = analysisText;
+            };
+
+            recognition.onerror = () => {
+                analysisElement.textContent = "Analysis failed. Try again or check your mic.";
+            };
+
+            recognition.onend = () => {
+                if (!analysisElement.textContent) {
+                    analysisElement.textContent = "No result. Try speaking louder or clearer.";
+                }
+            };
+
+            recognition.start();
+            recordedAudio.onplay = () => setTimeout(() => recognition.stop(), 2000);
+        }
+
+        startBtn.addEventListener("click", () => {
+            if (!intervalId) {
+                isPaused = false;
+                shuffledList = shuffleArray([...romanjiList]);
+                currentIndex = 0;
+                updateWord();
+                intervalId = setInterval(updateWord, getClearTime());
+            } else if (isPaused) {
+                isPaused = false;
+                clearTimeout(timeoutId1);
+                clearTimeout(timeoutId2);
+                updateWord();
+                intervalId = setInterval(updateWord, getClearTime());
+            }
+        });
+
+        pauseBtn.addEventListener("click", () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                clearTimeout(timeoutId1);
+                clearTimeout(timeoutId2);
+                intervalId = null;
+                isPaused = true;
+            }
+        });
+
+        playBtn.addEventListener("click", playSpecificWord);
+        inputWord.addEventListener("keypress", (event) => {
+            if (event.key === "Enter") playSpecificWord();
+        });
+
+        recordBtn.addEventListener("click", async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/mp3" });
+                    recordedAudioUrl = URL.createObjectURL(audioBlob);
+                    recordBtn.disabled = false;
+                    stopRecordBtn.disabled = true;
+                    compareBtn.disabled = false;
+                    analyzeRecording(); // Tự động phân tích
+                };
+
+                mediaRecorder.start();
+                recordBtn.disabled = true;
+                stopRecordBtn.disabled = false;
+                analysisElement.textContent = "Recording... Speak now!";
+            } catch (error) {
+                console.error("Recording error:", error);
+                alert("Cannot record. Check your mic and permissions.");
+            }
+        });
+
+        stopRecordBtn.addEventListener("click", () => {
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        compareBtn.addEventListener("click", compareSounds);
+    </script>
+</body>
+</html>
